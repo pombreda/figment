@@ -56,14 +56,14 @@ def process_distro(distro):
                 dbdistro = models.Distribution.objects.filter(codename=pkg.codename, name=distro.get_name()).first()
                 if not dbdistro:
                    continue
-                ver = models.ComponentVersion.objects.filter(component=dbcpt, version=pkg.version_upstream).first()
+                ver = models.ComponentVersion.objects.filter(component=dbcpt, version_str=pkg.version_upstream).first()
                 if not ver:
                     ver = models.ComponentVersion()
                 ver.component = dbcpt
-                ver.version = pkg.version_upstream
+                ver.version_str = pkg.version_upstream
                 ver.save()
                 dpk = models.DistroPackage()
-                dpk.cpt_version = ver
+                dpk.version = ver
                 dpk.distro = dbdistro
                 dpk.package_url = pkg.url
                 dpk.save()
@@ -71,7 +71,7 @@ def process_distro(distro):
 
                 for item_id in cpt.get_provided_items():
                     pitem = models.ProvidesItem()
-                    pitem.cpt_version = ver
+                    pitem.version = ver
                     kind = Appstream.provides_item_get_kind(item_id)
                     pitem.kind = Appstream.provides_kind_to_string(kind).decode("utf-8")
                     value = Appstream.provides_item_get_value(item_id)
@@ -91,7 +91,7 @@ def import_data():
             d = models.Distribution()
             d.name = distro.get_name()
             d.codename = release['codename']
-            d.version = release['version']
+            d.version_str = release['version']
             d.save()
         distro.update_caches()
         process_distro(distro)

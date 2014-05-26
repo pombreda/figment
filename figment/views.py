@@ -42,24 +42,23 @@ def get_component(request):
             pitems = list()
             pdata = dict()
             distro_data = list()
-            provides_items = ProvidesItem.objects.filter(cpt_version=ver)
+            provides_items = ProvidesItem.objects.filter(version=ver)
             for pi in provides_items:
                 if not pdata.get(pi.kind):
                     pdata[pi.kind] = list()
                 pdata[pi.kind].append(pi.value)
 
-            distros_assoc = DistroPackage.objects.filter(cpt_version=ver)
+            distros_assoc = DistroPackage.objects.filter(version=ver)
             for distro_a in distros_assoc:
                 distro = distro_a.distro
                 distro_data.append({'name': distro.name,
-                                    'version': distro.version,
+                                    'version': distro.version_str,
                                     'codename': distro.codename,
                                     'pkgurl': distro_a.package_url})
 
             for kind in pdata.keys():
                 pitems.append({'typename': provides_type_text(kind), 'values': pdata[kind]})
-            print(ver.version)
-            veritems.append({'version': ver.version,
+            veritems.append({'version': ver.version_str,
                     'provides': pitems,
                     'distros': distro_data,
                     'version_id': v_internal_id})
@@ -82,6 +81,23 @@ def get_component(request):
     else:
         return render(request, 'index.html', {'error': True})
 
+def component_to_item(cpt):
+    icon_url = cpt.icon_url
+
+    if os.path.isfile(os.path.join("static", "cpt-icons", icon_url)):
+        icon_url = "/static/cpt-icons/%s" % (icon_url)
+    else:
+        icon_url = "/static/images/notfound.png"
+
+    item = {
+        'kind': cpt.kind,
+        'identifier': cpt.identifier,
+        'name': cpt.name,
+        'summary': cpt.summary,
+        'icon_url': icon_url
+    }
+    return item
+
 def search_component(request):
     if 'q' in request.GET and request.GET['q']:
         q = request.GET['q']
@@ -93,24 +109,29 @@ def search_component(request):
 
         items = list()
         for cpt in cpts:
-            icon_url = cpt.icon_url
+            items.append(component_to_item(cpt))
 
-            if os.path.isfile(os.path.join("static", "cpt-icons", icon_url)):
-                icon_url = "/static/cpt-icons/%s" % (icon_url)
-            else:
-                icon_url = "/static/images/notfound.png"
+        return render(request, 'results.html',
+            {'title': "Search results",
+             'items': items})
+    else:
+        return render(request, 'index.html', {'error': True})
 
-            item = {
-                'kind': cpt.kind,
-                'identifier': cpt.identifier,
-                'name': cpt.name,
-                'summary': cpt.summary,
-                'icon_url': icon_url
-            }
+def find_feature(request):
+    if ('q' in request.GET and request.GET['q']) and ('type' in request.GET and request.GET['type']):
+        pvalue = request.GET['q']
+        pkind = request.GET['type']
+        feature_items = ProvidesItem.objects.filter(kind=pkind, value=pvalue)
+
+        items = list()
+        for feature_item in feature_items:
+            cpt = feature_item.version.component
+            item = component_to_item(cpt)
+            item['name'] = "%s (%s)" % (item['name'], feature_item.version.version_str)
             items.append(item)
 
         return render(request, 'results.html',
             {'title': "Search results",
              'items': items})
     else:
-        return render(request, 'search_form.html', {'error': True})
+        return render(request, 'index.html', {'error': True})

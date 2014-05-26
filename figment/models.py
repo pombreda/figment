@@ -26,19 +26,19 @@ class Component(models.Model):
 
 class ComponentVersion(models.Model):
     component = models.ForeignKey(Component)
-    version = models.CharField(max_length=200)
+    version_str = models.CharField(max_length=200)
 
 class Distribution(models.Model):
     name = models.CharField(max_length=200)
-    version = models.CharField(max_length=20)
+    version_str = models.CharField(max_length=20)
     codename = models.CharField(max_length=200)
 
 class ProvidesItem(models.Model):
-    cpt_version = models.ForeignKey(ComponentVersion)
+    version = models.ForeignKey(ComponentVersion)
     kind = models.TextField()
     value = models.TextField()
 
 class DistroPackage(models.Model):
-    cpt_version = models.ForeignKey(ComponentVersion)
+    version = models.ForeignKey(ComponentVersion)
     distro = models.ForeignKey(Distribution)
     package_url = models.TextField()
