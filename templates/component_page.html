@@ -1,0 +1,110 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+
+<div style="height: 80px;">
+  <img width="64px" height="64px" src="{{item.icon_url}}" alt="Icon" style="float: left;margin-right: 6px;text-align: center !important;" />
+  <h1 class="page-header">{{item.name}} <small>- {{item.summary}}</small></h1>
+</div>
+
+<div class="panel panel-primary">
+  <div class="panel-heading">
+    <h3 class="panel-title">Description</h3>
+  </div>
+  <div class="panel-body">
+  {% autoescape off %}
+    {{item.description}}
+  {% endautoescape %}
+  </div>
+</div>
+
+<div class="panel panel-primary">
+  <div class="panel-heading">
+    <h3 class="panel-title">Details</h3>
+  </div>
+  <div class="panel-body">
+  <strong>License:</strong> {{item.license}}<br/>
+  <strong>Homepage:</strong> <a href="{{item.homepage}}">{{item.homepage}}</a></br>
+  </div>
+</div>
+
+<div style="padding-bottom: 120px;">
+  <ul class="nav nav-tabs" id="versionTabbar">
+  {% for ver in item.versions %}
+    <li class=""><a data-toggle="tab" href="#{{ver.version_id}}">{{ver.version}}</a></li>
+  {% endfor %}
+
+  </ul>
+  <div class="tab-content" id="versionsContent">
+    {% for ver in item.versions %}
+      <div id="{{ver.version_id}}" class="tab-pane fade">
+        <p>
+          <h3>{{ver.version}}</h3>
+        </p>
+
+        <div ="distros">
+        {% for distro in ver.distros %}
+          <a rel="tooltip" type="button" href="{{distro.pkgurl}}" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="{{distro.name}}<br/>{{distro.version}} ({{distro.codename}})">
+            <img width="64px" height="64px" src="/static/images/distro/{{distro.name}}.png" alt="{{distro.name}}" style="float: left;margin-right: 6px;" />
+          </a>
+        {% endfor %}
+        </div>
+        <br/>
+
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <a data-toggle="collapse" data-parent="#accordion" href="#collapseProvides{{ver.version_id}}">
+                Provided Items
+              </a>
+            </h4>
+          </div>
+          <div id="collapseProvides{{ver.version_id}}" class="panel-collapse collapse in">
+            <div class="panel-body">
+
+            {% for pitem in ver.provides %}
+              <div class="panel-group" id="accordion">
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h4 class="panel-title">
+                      <a data-toggle="collapse" data-parent="#accordion" href="#collapse{{pitem.typename}}">
+                        {{pitem.typename}}
+                      </a>
+                    </h4>
+                  </div>
+                  <div id="collapse{{pitem.typename}}" class="panel-collapse collapse in">
+                    <div class="panel-body">
+                      {% for val in pitem.values %}
+                        {{val}}<br/>
+                      {% endfor %}
+                    </div>
+                 </div>
+               </div>
+             </div>
+            {% endfor %}
+
+            </div>
+          </div>
+        </div>
+
+
+
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+<script>
+$('#collapseProvides').collapse("hide");
+
+$('#versionTabbar a').click(function (e) {
+  e.preventDefault()
+  $(this).tab('show')
+})
+$('#versionTabbar a:first').tab('show');
+$("[rel='tooltip']").tooltip({html: true});
+</script>
+
+{% endblock %}

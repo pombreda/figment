@@ -1,0 +1,24 @@
+
+Debian:
+    archive_url: http://ftp.de.debian.org/
+    suites:
+        - name: unstable
+          version: devel
+        - name: jessie
+          version: 8.0
+
+Fedora:
+    archive_info_url: https://admin.fedoraproject.org/pkgdb/api/package
+    releases:
+        - version: devel
+          name: Rawhide
+        - version: 20
+          name: f20
+
+Tanglu:
+    archive_url: http://archive.tanglu.org/
+    suites:
+        - name: aequorea
+          version: 1.0
+        - name: bartholomea
+          version: 2.0

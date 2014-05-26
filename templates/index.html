@@ -1,0 +1,54 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="jumbotron" style="margin-top: 30px;">
+  <p>This is just a test, so far!</p>
+  {% if error %}
+    <p style="color: red;">Please submit a search term.</p>
+  {% endif %}
+</div>
+
+<div style="padding-bottom: 80px;">
+  <h2>Search components</h2>
+
+  <form action="/search/" method="get" name="search" class="navbar-form navbar-left">
+    <p>Search all components by text:</p>
+    <div class="form-group">
+      <input type="text" name="q" class="form-control" style="width: 400px;" placeholder="video player">
+    </div>
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+</div>
+
+<div style="padding-bottom: 80px;">
+  <h2>Find components by provided functionality</h2>
+  <form action="/provides/" method="get" name="find_item" class="navbar-form navbar-left">
+    <div class="form-group">
+      <div class="controls">
+        <select name="type" class="input-medium">
+          <option value="mimetype" selected>Mimetype</option>
+          <option value="lib">Library</option>
+          <option value="bin">Binary</option>
+          <option value="python2">Python2 module</option>
+          <option value="python3">Python3 module</option>
+        </select>
+      </div>
+      <input type="text" name="q" style="width: 210px;" class="form-control" placeholder="libfoo.so.4">
+    </div>
+    <button type="submit" class="btn btn-primary">Go</button>
+  </form>
+</div>
+
+<div style="padding-bottom: 60px;">
+  <h2>Seach for AppStream Identifiers</h2>
+  <form action="/get/" method="get" name="find_id" class="navbar-form navbar-left">
+    <p>Please enter an AppStream component identifier:</p>
+    <div class="form-group">
+      <input type="text" name="id" class="form-control" placeholder="app.desktop">
+    </div>
+    <button type="submit" class="btn btn-primary">Go</button>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+virtualenv --system-site-packages ENV

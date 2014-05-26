@@ -1,0 +1,29 @@
+<html>
+  {% load staticfiles %}
+  <head>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="/static/css/figment.css" rel="stylesheet">
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% if title %}
+    <title>{{title}} - Figment</title>
+    {% else %}
+    <title>Figment</title>
+    {% endif %}
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Figment</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container" role="main">
+    {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>

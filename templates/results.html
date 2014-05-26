@@ -1,0 +1,29 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Search results</h1>
+
+<div class="row">
+{% for item in items %}
+  <div class="col-sm-4">
+  {% if item.kind == 'desktop' %}
+    <div class="panel panel-info">
+  {% elif item.kind == 'codec' %}
+    <div class="panel panel-danger">
+  {% else %}
+    <div class="panel panel-default">
+  {% endif %}
+      <div class="panel-heading">
+        <h4 class="panel-title"><a href="/get/?id={{item.identifier}}">{{item.name}}</a></h4>
+      </div>
+      <div class="panel-body">
+        <img height="48" width="48" src="{{item.icon_url}}" alt="Icon" style="float: left;margin-right: 6px;" />
+        <small>{{item.summary}}</small>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+{% endblock %}
