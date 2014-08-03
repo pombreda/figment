@@ -1,13 +1,12 @@
 
-from figment import models
+from figment.database import db
+from figment.models import *
 from gi.repository import Appstream
-from django.db import transaction
 
 from distro.debian import *
 from distro.fedora import *
 from distro.tanglu import *
 
-@transaction.commit_manually
 def process_distro(distro):
     print("Collecting component information")
     dpool = Appstream.DataPool.new()
@@ -80,19 +79,39 @@ def process_distro(distro):
                     pitem.value = value.decode("utf-8")
                     pitem.save()
 
+def init_database():
+    db.create_all()
+    db.session.commit()
+
 def import_data():
+
+    cpt = Component(identifier='test', name='FooBar', summary='Foo-ish bar')
+    ver = ComponentVersion(version="1.0")
+    cpt.versions.append(ver)
+
+    cpt2 = Component(identifier='test2', name='dhnfhm', summary='dfbfgn ')
+    ver2 = ComponentVersion(version="2.0")
+    cpt2.versions.append(ver2)
+
+    db.session.add_all([cpt, ver, cpt2, ver2])
+    db.session.commit()
+
     distros = list()
     distros.append(DebianPkgInfoRetriever())
     distros.append(FedoraPkgInfoRetriever())
     distros.append(TangluPkgInfoRetriever())
 
+    dlist = list()
     for distro in distros:
         for release in distro.get_releases():
-            d = models.Distribution()
+            d = Distribution()
             d.name = distro.get_name()
             d.codename = release['codename']
-            d.version_str = release['version']
-            d.save()
-        distro.update_caches()
-        process_distro(distro)
+            d.version = release['version']
+            dlist.append(d)
+        #distro.update_caches()
+        #process_distro(distro)
+
+    db.session.add_all(dlist)
+    db.session.commit()
 

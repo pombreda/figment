@@ -8,7 +8,3 @@ app = Flask("figment", template_folder=tmpl_dir, static_folder=static_dir)
 app.config.from_object('config')
 
 from figment import views
-
-import database
-
-database.init_db(app)
