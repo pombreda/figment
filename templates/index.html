@@ -13,9 +13,10 @@
   <h2>Search components</h2>
   <p>Run a full-text search to find software.</p>
 
-  <form action="/search/" method="get" name="search" class="navbar-form navbar-left">
+  <form action="" method="post" name="search" class="navbar-form navbar-left">
+    {{sform.hidden_tag()}}
     <div class="form-group">
-      <input type="text" name="q" class="form-control" style="width: 400px;" placeholder="video player">
+      <input name="search-text" value="" type="text" class="form-control" style="width: 400px;" placeholder="video player">
     </div>
     <button type="submit" class="btn btn-primary">Search</button>
   </form>

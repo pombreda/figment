@@ -1,137 +1,92 @@
 
-from django.shortcuts import render
-from django.http import HttpResponse
-from django.template import RequestContext, loader
+from flask import render_template, redirect, Markup, url_for
+from figment import app
+from forms import SearchIdForm, SearchForm
+from gi.repository import Appstream
+from utils import get_db
+import os.path
 
-from figment.models import *
-from figment import settings
-import os
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
+def index():
+    idform = SearchIdForm(prefix="id")
+    if idform.validate_on_submit():
+        return redirect(url_for('component_page', identifier=idform.identifier.data))
 
-def index(request):
-    #context = {'latest_question_list': latest_question_list}
-    return render(request, 'index.html', None)
+    sform = SearchForm(prefix="search")
+    if sform.validate_on_submit():
+        return redirect(url_for('search_string', search_str=sform.text.data))
 
-def provides_type_text(kind):
-    MAPPING = {'mimetype': "Mimetypes",
-               'codec': "Codec",
-               'bin': "Binaries",
-               'lib': "Libraries"}
-    text = MAPPING.get(kind)
-    if not text:
-        text = kind
-    return text
+    return render_template('index.html',
+        title = 'Home',
+        idform = idform,
+        sform = sform)
 
-def get_component(request):
-    if 'id' in request.GET and request.GET['id']:
-        q = request.GET['id']
+def get_icon_url_for_cpt(cpt):
+    icon_url = cpt.get_icon_url().decode("utf-8")
 
-        cpt = Component.objects.filter(identifier=q).first()
-        if not cpt:
-            return render(request, 'id_notfound.html',
-                {'identifier': q})
+    if os.path.isfile(os.path.join(app.root_path, "..", "static", icon_url)):
+        icon_url = url_for('static', filename="images/%s" % (icon_url))
+    else:
+        icon_url = url_for('static', filename='images/notfound.png')
 
-        icon_url = cpt.icon_url
-        if icon_url == "":
-            icon_url = "images/notfound.png"
-        icon_url = "/static/cpt-icons/%s" % (icon_url)
+    return icon_url
 
-        versions = ComponentVersion.objects.filter(component=cpt)
-        veritems = list()
-        v_internal_id = 1
-        for ver in versions:
-            pitems = list()
-            pdata = dict()
-            distro_data = list()
-            provides_items = ProvidesItem.objects.filter(version=ver)
-            for pi in provides_items:
-                if not pdata.get(pi.kind):
-                    pdata[pi.kind] = list()
-                pdata[pi.kind].append(pi.value)
+@app.route('/get/<identifier>', methods=['GET', 'POST'])
+def component_page(identifier):
+    db = get_db()
+    cpt = db.get_component_by_id(identifier)
+    if not cpt:
+        return render_template('id_notfound.html', identifier = identifier)
 
-            distros_assoc = DistroPackage.objects.filter(version=ver)
-            for distro_a in distros_assoc:
-                distro = distro_a.distro
-                distro_data.append({'name': distro.name,
-                                    'version': distro.version_str,
-                                    'codename': distro.codename,
-                                    'pkgurl': distro_a.package_url})
+    cptid = cpt.get_id().decode("utf-8")
+    cptname = cpt.get_name().decode("utf-8")
+    cptsummary = cpt.get_summary().decode("utf-8")
+    cptdesc = cpt.get_description().decode("utf-8").replace('\n', "<br/>")
+    cptdesc = Markup(cptdesc)
 
-            for kind in pdata.keys():
-                pitems.append({'typename': provides_type_text(kind), 'values': pdata[kind]})
-            veritems.append({'version': ver.version_str,
-                    'provides': pitems,
-                    'distros': distro_data,
-                    'version_id': v_internal_id})
-            v_internal_id += 1
-
-        item = {
-            'identifier': cpt.identifier,
-            'name': cpt.name,
-            'summary': cpt.summary,
-            'description': cpt.description,
-            'icon_url': icon_url,
-            'versions': veritems,
-            'license': cpt.license,
-            'homepage': cpt.homepage
+    pitems = list()
+    pitems = [
+        {
+            'typename': "Mimetypes",
+            'values': "ABC",
         }
-
-        return render(request, 'component_page.html',
-            {'item': item,
-             'title': cpt.name})
-    else:
-        return render(request, 'index.html', {'error': True})
-
-def component_to_item(cpt):
-    icon_url = cpt.icon_url
-
-    if os.path.isfile(os.path.join("static", "cpt-icons", icon_url)):
-        icon_url = "/static/cpt-icons/%s" % (icon_url)
-    else:
-        icon_url = "/static/images/notfound.png"
+    ]
 
     item = {
-        'kind': cpt.kind,
-        'identifier': cpt.identifier,
-        'name': cpt.name,
-        'summary': cpt.summary,
-        'icon_url': icon_url
+        'identifier': cptid,
+        'name': cptname,
+        'summary': cptsummary,
+        'description': cptdesc,
+        'license': cpt.get_project_license().decode("utf-8"),
+        'icon_url': get_icon_url_for_cpt(cpt),
+        'provides': pitems
     }
-    return item
 
-def search_component(request):
-    if 'q' in request.GET and request.GET['q']:
-        q = request.GET['q']
-        db_backend = settings.DATABASES['default']['ENGINE'].split('.')[-1]
-        if db_backend == 'postgresql_psycopg2':
-            cpts = Component.search_manager.search(q)
-        else:
-            cpts = Component.objects.filter(description__icontains=q)
+    return render_template('component_page.html',
+        title = cptname,
+        item = item)
 
-        items = list()
-        for cpt in cpts:
-            items.append(component_to_item(cpt))
+@app.route('/search/<search_str>', methods=['GET', 'POST'])
+def search_string(search_str):
+    db = get_db()
+    cpts = db.find_components_by_term(search_str, "")
+    if not cpts:
+        return render_template('id_notfound.html', identifier="Crap!")
 
-        return render(request, 'results.html',
-            {'title': "Search results",
-             'items': items})
-    else:
-        return render(request, 'index.html', {'error': True})
+    items = list()
+    for cpt in cpts:
+        icon_url = get_icon_url_for_cpt(cpt)
 
-def find_feature(request):
-    if ('q' in request.GET and request.GET['q']) and ('type' in request.GET and request.GET['type']):
-        pvalue = request.GET['q']
-        pkind = request.GET['type']
-        feature_items = ProvidesItem.objects.filter(kind=pkind, value=pvalue)
+        item = {
+            'kind': Appstream.ComponentKind.to_string(cpt.get_kind()).decode("utf-8"),
+            'identifier': cpt.get_id().decode("utf-8"),
+            'name': cpt.get_name().decode("utf-8"),
+            'summary': cpt.get_summary().decode("utf-8"),
+            'icon_url': icon_url
+        }
+        items.append(item)
 
-        items = list()
-        for feature_item in feature_items:
-            cpt = feature_item.version.component
-            item = component_to_item(cpt)
-            item['name'] = "%s (%s)" % (item['name'], feature_item.version.version_str)
-            items.append(item)
-
-        return render(request, 'results.html',
-            {'title': "Search results",
-             'items': items})
-    else:
-        return render(request, 'index.html', {'error': True})
+    return render_template('results.html',
+        title = "Search results",
+        items = items)

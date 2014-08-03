@@ -1,44 +1,62 @@
 
-from django.db import models
-from djorm_pgfulltext.models import SearchManager
-from djorm_pgfulltext.fields import VectorField
-from figment import settings
+from database import db
+from sqlalchemy import Column, Integer, String
 
-class Component(models.Model):
-    identifier = models.CharField(max_length=200)
-    kind = models.CharField(max_length=200)
-    name = models.TextField()
-    summary = models.TextField()
-    description = models.TextField()
-    icon_url = models.TextField()
-    license = models.CharField(max_length=200)
-    homepage = models.TextField()
+class Component(db.Model):
+    __tablename__ = 'components'
 
-    if settings.DATABASES['default']['ENGINE'].split('.')[-1] == 'postgresql_psycopg2':
-        search_index = VectorField()
-        objects = models.Manager()
-        search_manager = SearchManager(
-        fields=('name', 'summary', 'description'),
-            config='pg_catalog.english',
-            search_field='search_index',
-            auto_update_search_field=True
-        )
+    id = Column(Integer, primary_key=True)
+    identifier = Column(String, unique=True)
+    kind = Column(String)
+    name = Column(String)
+    summary = Column(String)
+    description = Column(String)
+    icon_url = Column(String)
+    license = Column(String)
+    homepage = Column(String)
+    versions = db.relationship('ComponentVersion', backref='component',
+                                lazy='dynamic', cascade="all, delete, delete-orphan")
 
-class ComponentVersion(models.Model):
-    component = models.ForeignKey(Component)
-    version_str = models.CharField(max_length=200)
+    def __repr__(self):
+        return "<Component(uid='%s', name='%s', summary='%s')>" % (
+                             self.identifier, self.name, self.summary)
 
-class Distribution(models.Model):
-    name = models.CharField(max_length=200)
-    version_str = models.CharField(max_length=20)
-    codename = models.CharField(max_length=200)
+class ComponentVersion(db.Model):
+    __tablename__ = 'component_versions'
 
-class ProvidesItem(models.Model):
-    version = models.ForeignKey(ComponentVersion)
-    kind = models.TextField()
-    value = models.TextField()
+    id = Column(Integer, primary_key=True)
+    component_id = db.Column(db.Integer, db.ForeignKey('components.id'))
+    version = Column(String)
 
-class DistroPackage(models.Model):
-    version = models.ForeignKey(ComponentVersion)
-    distro = models.ForeignKey(Distribution)
-    package_url = models.TextField()
+    provided_items = db.relationship('ProvidedItem', backref='version',
+                                lazy='dynamic', cascade="all, delete, delete-orphan")
+    packages = db.relationship('DistroPackage', backref='component_version',
+                                lazy='dynamic', cascade="all, delete, delete-orphan")
+
+class ProvidedItem(db.Model):
+    __tablename__ = 'provided_items'
+
+    id = Column(Integer, primary_key=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('component_versions.id'))
+    kind = Column(String)
+    value = Column(String)
+
+class Distribution(db.Model):
+    __tablename__ = 'distributions'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    version = Column(String)
+    codename = Column(String)
+
+    packages = db.relationship('DistroPackage', backref='distribution',
+                                lazy='dynamic', cascade="all, delete, delete-orphan")
+
+class DistroPackage(db.Model):
+    __tablename__ = 'distro_packages'
+
+    id = Column(Integer, primary_key=True)
+    version_id = db.Column(db.Integer, db.ForeignKey('component_versions.id'))
+    distro_id = db.Column(db.Integer, db.ForeignKey('distributions.id'))
+
+    package_url = Column(String)
