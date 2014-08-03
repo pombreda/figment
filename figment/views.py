@@ -3,6 +3,8 @@ from flask import render_template, redirect, Markup, url_for
 from figment import app
 from forms import SearchIdForm, SearchForm
 from gi.repository import Appstream
+from database import db
+from models import *
 from utils import get_db
 import os.path
 
@@ -22,11 +24,9 @@ def index():
         idform = idform,
         sform = sform)
 
-def get_icon_url_for_cpt(cpt):
-    icon_url = cpt.get_icon_url().decode("utf-8")
-
-    if os.path.isfile(os.path.join(app.root_path, "..", "static", icon_url)):
-        icon_url = url_for('static', filename="images/%s" % (icon_url))
+def get_icon_url(icon_url):
+    if os.path.isfile(os.path.join(app.root_path, "..", "static", "images", "cpt-icons", icon_url)):
+        icon_url = url_for('static', filename="images/cpt-icons/%s" % (icon_url))
     else:
         icon_url = url_for('static', filename='images/notfound.png')
 
@@ -34,15 +34,11 @@ def get_icon_url_for_cpt(cpt):
 
 @app.route('/get/<identifier>', methods=['GET', 'POST'])
 def component_page(identifier):
-    db = get_db()
-    cpt = db.get_component_by_id(identifier)
+    cpt = db.session.query(Component).filter_by(identifier=identifier).first()
     if not cpt:
         return render_template('id_notfound.html', identifier = identifier)
 
-    cptid = cpt.get_id().decode("utf-8")
-    cptname = cpt.get_name().decode("utf-8")
-    cptsummary = cpt.get_summary().decode("utf-8")
-    cptdesc = cpt.get_description().decode("utf-8").replace('\n', "<br/>")
+    cptdesc = cpt.description.replace('\n', "<br/>")
     cptdesc = Markup(cptdesc)
 
     pitems = list()
@@ -53,18 +49,20 @@ def component_page(identifier):
         }
     ]
 
+    print cpt.icon_url
     item = {
-        'identifier': cptid,
-        'name': cptname,
-        'summary': cptsummary,
+        'identifier': cpt.identifier,
+        'name': cpt.name,
+        'summary': cpt.summary,
         'description': cptdesc,
-        'license': cpt.get_project_license().decode("utf-8"),
-        'icon_url': get_icon_url_for_cpt(cpt),
+        'icon_url': get_icon_url(cpt.icon_url),
+        'license': cpt.license,
+        'homepage': cpt.homepage,
         'provides': pitems
     }
 
     return render_template('component_page.html',
-        title = cptname,
+        title = cpt.name,
         item = item)
 
 @app.route('/search/<search_str>', methods=['GET', 'POST'])
@@ -76,7 +74,7 @@ def search_string(search_str):
 
     items = list()
     for cpt in cpts:
-        icon_url = get_icon_url_for_cpt(cpt)
+        icon_url = get_icon_url(cpt.get_icon_url().decode("utf-8"))
 
         item = {
             'kind': Appstream.ComponentKind.to_string(cpt.get_kind()).decode("utf-8"),

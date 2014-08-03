@@ -91,8 +91,8 @@ class DebianPkgInfoRetriever(PkgInfoRetriever):
                 pkgs.append (pkg)
         return pkgs
 
-    def get_metadata_paths_xml(self):
-        return [os.path.join(self.get_cache_path(), "asxml")]
+    def get_metadata_paths(self):
+        return [os.path.join(self.get_cache_path(), "metadata")]
 
 
 ### apt_pkg needs to be initialized

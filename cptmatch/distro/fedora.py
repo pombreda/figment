@@ -60,5 +60,5 @@ class FedoraPkgInfoRetriever(PkgInfoRetriever):
             pkgs.append(pkg)
         return pkgs
 
-    def get_metadata_paths_xml(self):
+    def get_metadata_paths(self):
         return [os.path.join(self.get_cache_path(), "metadata")]

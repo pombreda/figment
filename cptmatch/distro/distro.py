@@ -53,8 +53,5 @@ class PkgInfoRetriever():
     def get_releases(self):
         pass
 
-    def get_metadata_paths_xml(self):
-        return None
-
-    def get_metadata_paths_dep11(self):
-        return None
+    def get_metadata_paths(self):
+        return [os.path.join(self.get_cache_path(), "metadata")]
