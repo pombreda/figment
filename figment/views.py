@@ -1,28 +1,33 @@
 
 from flask import render_template, redirect, Markup, url_for
 from figment import app
-from forms import SearchIdForm, SearchForm
-from gi.repository import Appstream
+from forms import GetIdForm, SearchForm, SearchItemsForm
 from database import db
 from models import *
 from utils import get_db
+from werkzeug.urls import url_quote, url_unquote
 import os.path
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 def index():
-    idform = SearchIdForm(prefix="id")
+    idform = GetIdForm(prefix="get")
     if idform.validate_on_submit():
-        return redirect(url_for('component_page', identifier=idform.identifier.data))
+        return redirect(url_for('component_page', identifier=url_quote(idform.identifier.data, safe='')))
 
     sform = SearchForm(prefix="search")
     if sform.validate_on_submit():
-        return redirect(url_for('component_search', search_str=sform.text.data))
+        return redirect(url_for('component_search', search_str=url_quote(sform.text.data, safe='')))
+
+    itemform = SearchItemsForm(prefix="search-item")
+    if itemform.validate_on_submit():
+        return redirect(url_for('find_feature', kind=itemform.kind.data, value=url_quote(itemform.text.data, safe='')))
 
     return render_template('index.html',
         title = 'Home',
         idform = idform,
-        sform = sform)
+        sform = sform,
+        itemform = itemform)
 
 def get_icon_url(icon_url):
     if os.path.isfile(os.path.join(app.root_path, "..", "static", "images", "cpt-icons", icon_url)):
@@ -44,6 +49,7 @@ def provides_type_text(kind):
 
 @app.route('/get/<identifier>', methods=['GET', 'POST'])
 def component_page(identifier):
+    identifier = url_unquote(identifier)
     cpt = db.session.query(Component).filter_by(identifier=identifier).first()
     if not cpt:
         return render_template('id_notfound.html', identifier = identifier)
@@ -71,8 +77,7 @@ def component_page(identifier):
 
         for kind in pdata.keys():
             pitems.append({'typename': provides_type_text(kind), 'values': pdata[kind]})
-        for x in pitems:
-            print x['values']
+
         veritems.append({'version': ver.version,
                 'provides': pitems,
                 'distros': distro_data,
@@ -94,24 +99,46 @@ def component_page(identifier):
         title = cpt.name,
         item = item)
 
+def component_to_item(cpt):
+    icon_url = get_icon_url(cpt.icon_url)
+
+    item = {
+        'kind': cpt.kind,
+        'identifier': cpt.identifier,
+        'name': cpt.name,
+        'summary': cpt.summary,
+        'icon_url': icon_url
+    }
+    return item
+
 @app.route('/search/<search_str>', methods=['GET', 'POST'])
 def component_search(search_str):
-    db = get_db()
-    cpts = db.find_components_by_term(search_str, "")
+    search_str = url_unquote(search_str)
+    cpts = db.session.query(Component).filter(Component.description.like("%"+search_str+"%")).all()
     if not cpts:
         return render_template('id_notfound.html', identifier="Crap!")
 
     items = list()
     for cpt in cpts:
-        icon_url = get_icon_url(cpt.get_icon_url().decode("utf-8"))
+        items.append(component_to_item(cpt))
 
-        item = {
-            'kind': Appstream.ComponentKind.to_string(cpt.get_kind()).decode("utf-8"),
-            'identifier': cpt.get_id().decode("utf-8"),
-            'name': cpt.get_name().decode("utf-8"),
-            'summary': cpt.get_summary().decode("utf-8"),
-            'icon_url': icon_url
-        }
+    return render_template('results.html',
+        title = "Search results",
+        items = items)
+
+@app.route('/provides/<kind>/<value>', methods=['GET', 'POST'])
+def find_feature(kind, value):
+    value = url_unquote(value)
+    feature_items = db.session.query(ProvidedItem).filter_by(kind=kind, value=value).all()
+    print value
+    if not feature_items:
+        return render_template('id_notfound.html', identifier="Crap!")
+
+    items = list()
+    for feature_item in feature_items:
+        cpt = feature_item.version.component
+        item = component_to_item(cpt)
+        item['name'] = "%s (%s)" % (item['name'], feature_item.version.version)
         items.append(item)
 
     return render_template('results.html',
