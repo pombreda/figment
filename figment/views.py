@@ -17,7 +17,7 @@ def index():
 
     sform = SearchForm(prefix="search")
     if sform.validate_on_submit():
-        return redirect(url_for('search_string', search_str=sform.text.data))
+        return redirect(url_for('component_search', search_str=sform.text.data))
 
     return render_template('index.html',
         title = 'Home',
@@ -32,6 +32,16 @@ def get_icon_url(icon_url):
 
     return icon_url
 
+def provides_type_text(kind):
+    MAPPING = {'mimetype': "Mimetypes",
+               'codec': "Codec",
+               'bin': "Binaries",
+               'lib': "Libraries"}
+    text = MAPPING.get(kind)
+    if not text:
+        text = kind
+    return text
+
 @app.route('/get/<identifier>', methods=['GET', 'POST'])
 def component_page(identifier):
     cpt = db.session.query(Component).filter_by(identifier=identifier).first()
@@ -41,24 +51,43 @@ def component_page(identifier):
     cptdesc = cpt.description.replace('\n', "<br/>")
     cptdesc = Markup(cptdesc)
 
-    pitems = list()
-    pitems = [
-        {
-            'typename': "Mimetypes",
-            'values': "ABC",
-        }
-    ]
+    veritems = list()
+    v_internal_id = 1
+    for ver in cpt.versions:
+        pitems = list()
+        pdata = dict()
+        distro_data = list()
+        for pi in ver.provided_items:
+            if not pdata.get(pi.kind):
+                pdata[pi.kind] = list()
+            pdata[pi.kind].append(pi.value)
 
-    print cpt.icon_url
+        for distro_pkg in ver.packages:
+            distro = db.session.query(Distribution).filter_by(id=distro_pkg.distro_id).one()
+            distro_data.append({'name': distro.name,
+                                'version': distro.version,
+                                'codename': distro.codename,
+                                'pkgurl': distro_pkg.package_url})
+
+        for kind in pdata.keys():
+            pitems.append({'typename': provides_type_text(kind), 'values': pdata[kind]})
+        for x in pitems:
+            print x['values']
+        veritems.append({'version': ver.version,
+                'provides': pitems,
+                'distros': distro_data,
+                'version_id': v_internal_id})
+        v_internal_id += 1
+
     item = {
         'identifier': cpt.identifier,
         'name': cpt.name,
         'summary': cpt.summary,
-        'description': cptdesc,
+        'description': cpt.description,
         'icon_url': get_icon_url(cpt.icon_url),
+        'versions': veritems,
         'license': cpt.license,
-        'homepage': cpt.homepage,
-        'provides': pitems
+        'homepage': cpt.homepage
     }
 
     return render_template('component_page.html',
@@ -66,7 +95,7 @@ def component_page(identifier):
         item = item)
 
 @app.route('/search/<search_str>', methods=['GET', 'POST'])
-def search_string(search_str):
+def component_search(search_str):
     db = get_db()
     cpts = db.find_components_by_term(search_str, "")
     if not cpts:

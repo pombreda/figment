@@ -63,7 +63,7 @@ class TangluPkgInfoRetriever(PkgInfoRetriever):
                               self._get_upstream_version(pkgversion),
                               suite,
                               component)
-            pkg.url = "https://packages.tanglu.org/%s/%s" % (suite, pkgname)
+            pkg.url = "http://packages.tanglu.org/%s/%s" % (suite, pkgname)
 
             package_list.append(pkg)
         packages_dict = package_list_to_dict(package_list)
