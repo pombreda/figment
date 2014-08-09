@@ -12,6 +12,7 @@ def process_distro(distro):
     dpool = Appstream.DataPool.new()
 
     dpool.set_data_source_directories(distro.get_metadata_paths())
+    dpool.set_locale("C")
 
     dpool.initialize()
     dpool.update()
@@ -103,6 +104,7 @@ def import_data():
     distros.append(TangluPkgInfoRetriever())
 
     for distro in distros:
+        distro.update_caches()
         for release in distro.get_releases():
             d = db.session.query(Distribution).filter_by(codename=release['codename'], name=distro.get_name()).first()
             if d:
@@ -112,8 +114,6 @@ def import_data():
             d.codename = release['codename']
             d.version = release['version']
             db.session.add(d)
-        db.session.commit()
-        distro.update_caches()
-    # process packages in a second step
-    for distro in distros:
+            db.session.flush()
         process_distro(distro)
+    db.session.commit()
