@@ -2,3 +2,4 @@ appstream>=0.7.2
 PyGObject
 Flask
 Flask-SQLAlchemy
+Flask-WTF
