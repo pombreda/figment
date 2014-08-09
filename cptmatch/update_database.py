@@ -25,6 +25,7 @@ def process_distro(distro):
         if not dbcpt:
             dbcpt = Component()
             db.session.add(dbcpt)
+            db.session.flush()
         dbcpt.kind = Appstream.ComponentKind.to_string(cpt.get_kind()).decode("utf-8")
         dbcpt.identifier = identifier
         dbcpt.name = cpt.get_name().decode("utf-8")
@@ -57,7 +58,8 @@ def process_distro(distro):
             if not ver:
                 ver = ComponentVersion()
                 db.session.add(ver)
-            dbcpt.versions.append(ver)
+                dbcpt.versions.append(ver)
+                db.session.flush()
             ver.version = pkg.version_upstream
 
             dpk = db.session.query(DistroPackage).filter_by(version_id=ver.id, distro_id=dbdistro.id).first()
@@ -65,8 +67,10 @@ def process_distro(distro):
                 dpk = DistroPackage()
                 ver.packages.append(dpk)
                 dbdistro.packages.append(dpk)
+                dpk.pkgname = pkg.pkgname
                 dpk.package_url = pkg.url
                 db.session.add(dpk)
+                db.session.flush()
 
             for item_id in cpt.get_provided_items():
                 kind = Appstream.provides_item_get_kind(item_id)
@@ -108,8 +112,8 @@ def import_data():
             d.codename = release['codename']
             d.version = release['version']
             db.session.add(d)
-            db.session.commit()
+        db.session.commit()
         distro.update_caches()
+    # process packages in a second step
+    for distro in distros:
         process_distro(distro)
-    db.session.commit()
-

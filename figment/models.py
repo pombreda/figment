@@ -59,4 +59,5 @@ class DistroPackage(db.Model):
     version_id = db.Column(db.Integer, db.ForeignKey('component_versions.id'))
     distro_id = db.Column(db.Integer, db.ForeignKey('distributions.id'))
 
+    pkgname = Column(String)
     package_url = Column(String)
