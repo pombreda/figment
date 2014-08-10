@@ -16,6 +16,7 @@ class Component(db.Model):
     developer_name = Column(String)
     license = Column(String)
     homepage = Column(String)
+    highest_version = Column(String)
     versions = db.relationship('ComponentVersion', backref='component',
                                 lazy='dynamic', cascade="all, delete, delete-orphan")
     screenshots = db.relationship('Screenshot', backref='component',

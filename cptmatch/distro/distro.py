@@ -13,7 +13,7 @@ class PackageInfo():
     def __init__(self, pkgname, pkgversion, upstream_version, suite, component):
         self.pkgname = pkgname
         self.version = pkgversion
-        self.version_upstream = upstream_version
+        self.upstream_version = upstream_version
         self.codename = suite
         self.component = component
         self.url = "#"

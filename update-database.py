@@ -5,5 +5,6 @@ from figment import app
 
 if __name__ == "__main__":
     from cptmatch.update_database import *
-    init_database()
-    import_data()
+    dupd = DatabaseUpdater()
+    dupd.init_database()
+    dupd.import_data()
