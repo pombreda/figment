@@ -52,7 +52,8 @@ def component_page(identifier):
     identifier = url_unquote(identifier)
     cpt = db.session.query(Component).filter_by(identifier=identifier).first()
     if not cpt:
-        return render_template('id_notfound.html', identifier = identifier)
+        notfound_msg = Markup("Component with identifier <b>%s</b> was not found.") % (identifier)
+        return render_template('notfound.html', message = notfound_msg)
 
     cptdesc = cpt.description.replace('\n', "<br/>")
     cptdesc = Markup(cptdesc)
@@ -91,6 +92,7 @@ def component_page(identifier):
         'description': cpt.description,
         'icon_url': get_icon_url(cpt.icon_url),
         'versions': veritems,
+        'developer': cpt.developer_name,
         'license': cpt.license,
         'homepage': cpt.homepage
     }
@@ -116,7 +118,8 @@ def component_search(search_str):
     search_str = url_unquote(search_str)
     cpts = db.session.query(Component).filter(Component.description.like("%"+search_str+"%")).all()
     if not cpts:
-        return render_template('id_notfound.html', identifier="Crap!")
+        notfound_msg = Markup("Could not find software matching the search terms: <b>%s</b>") % (search_str)
+        return render_template('notfound.html', message = notfound_msg)
 
     items = list()
     for cpt in cpts:
@@ -132,7 +135,8 @@ def find_feature(kind, value):
     feature_items = db.session.query(ProvidedItem).filter_by(kind=kind, value=value).all()
     print value
     if not feature_items:
-        return render_template('id_notfound.html', identifier="Crap!")
+        notfound_msg = Markup("Could not find software providing \"<b>[<i>%s</i>] %s</b>\"") % (kind, value)
+        return render_template('notfound.html', message = notfound_msg)
 
     items = list()
     for feature_item in feature_items:

@@ -1,6 +1,7 @@
 
+import json
 from database import db
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 
 class Component(db.Model):
     __tablename__ = 'components'
@@ -12,9 +13,12 @@ class Component(db.Model):
     summary = Column(String)
     description = Column(String)
     icon_url = Column(String)
+    developer_name = Column(String)
     license = Column(String)
     homepage = Column(String)
     versions = db.relationship('ComponentVersion', backref='component',
+                                lazy='dynamic', cascade="all, delete, delete-orphan")
+    screenshots = db.relationship('Screenshot', backref='component',
                                 lazy='dynamic', cascade="all, delete, delete-orphan")
 
     def __repr__(self):
@@ -40,6 +44,26 @@ class ProvidedItem(db.Model):
     version_id = db.Column(db.Integer, db.ForeignKey('component_versions.id'))
     kind = Column(String)
     value = Column(String)
+
+class Screenshot(db.Model):
+    __tablename__ = 'screenshots'
+
+    id = Column(Integer, primary_key=True)
+    component_id = db.Column(db.Integer, db.ForeignKey('components.id'))
+    default = Column(Boolean)
+    caption = Column(String)
+    images = Column(String)
+
+    _img_data = list()
+
+    def set_image_data(self, data):
+        self._img_data = data
+        self.images = json.dumps(self._img_data)
+
+    def get_image_data(self):
+        if not self._img_data:
+            self._img_data = json.loads(self.images)
+        return self._img_data
 
 class Distribution(db.Model):
     __tablename__ = 'distributions'

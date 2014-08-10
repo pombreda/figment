@@ -31,6 +31,25 @@ def process_distro(distro):
         dbcpt.identifier = identifier
         dbcpt.name = cpt.get_name().decode("utf-8")
         dbcpt.summary = cpt.get_summary().decode("utf-8")
+        dbcpt.developer_name = cpt.get_summary().decode("utf-8")
+
+        screenshots = cpt.get_screenshots()
+        dbcpt.screenshots = list()
+        for shot in screenshots:
+            dbshot = Screenshot()
+            dbshot.default = shot.get_kind() == Appstream.ScreenshotKind.DEFAULT
+            dbshot.caption = shot.get_caption().decode("utf-8")
+            imgdata = list()
+            for img in shot.get_images():
+                d = dict()
+                d['kind'] = Appstream.Image.kind_to_string(img.get_kind()).decode("utf-8")
+                d['url'] = img.get_url().decode("utf-8")
+                d['width'] = img.get_width()
+                d['height'] = img.get_height()
+                imgdata.append(d)
+            if imgdata:
+                dbshot.set_image_data(imgdata)
+                dbcpt.screenshots.append(dbshot)
 
         cptdesc = cpt.get_description().decode("utf-8").replace('\n', "<br/>")
         dbcpt.description = cptdesc
