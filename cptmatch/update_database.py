@@ -85,7 +85,10 @@ class DatabaseUpdater:
                 dbcpt.identifier = identifier
                 dbcpt.name = cpt.get_name().decode("utf-8")
                 dbcpt.summary = cpt.get_summary().decode("utf-8")
-                dbcpt.developer_name = cpt.get_summary().decode("utf-8")
+                developer_name = cpt.get_developer_name()
+                if developer_name:
+                    developer_name = developer_name.decode("utf-8")
+                dbcpt.developer_name = developer_name
 
                 dbcpt.highest_version = str(cdata['version'])
 
@@ -110,7 +113,10 @@ class DatabaseUpdater:
                 cptdesc = cpt.get_description().decode("utf-8").replace('\n', "<br/>")
                 dbcpt.description = cptdesc
 
-                dbcpt.license = cpt.get_project_license().decode("utf-8")
+                license = cpt.get_project_license()
+                if license:
+                    license = license.decode("utf-8")
+                dbcpt.license = license
                 homepage = cpt.get_url(Appstream.UrlKind.HOMEPAGE)
                 if homepage:
                     homepage = homepage.decode("utf-8")

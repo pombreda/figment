@@ -58,6 +58,22 @@ def component_page(identifier):
     cptdesc = cpt.description.replace('\n', "<br/>")
     cptdesc = Markup(cptdesc)
 
+    screenshots = list()
+
+    for shot in cpt.screenshots:
+        imgs = shot.get_image_data()
+        sdata = dict()
+        max_height = 0
+        for img in imgs:
+            if img['height'] <= 200:
+                sdata['url_thumb'] = img['url']
+            elif img['height'] > max_height:
+                sdata['url_large'] = img['url']
+            max_height = img['height']
+        if sdata:
+            sdata['caption'] = shot.caption
+            screenshots.append(sdata)
+
     veritems = list()
     v_internal_id = 1
     for ver in cpt.versions:
@@ -94,7 +110,8 @@ def component_page(identifier):
         'versions': veritems,
         'developer': cpt.developer_name,
         'license': cpt.license,
-        'homepage': cpt.homepage
+        'homepage': cpt.homepage,
+        'screenshots': screenshots
     }
 
     return render_template('component_page.html',
