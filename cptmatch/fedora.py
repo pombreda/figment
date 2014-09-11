@@ -1,5 +1,5 @@
 
-from distro import *
+from helpers import *
 import requests
 import os
 import json

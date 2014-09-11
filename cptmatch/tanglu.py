@@ -1,5 +1,5 @@
 
-from distro import *
+from helpers import *
 import gzip
 import re
 from apt_pkg import TagFile, version_compare, init

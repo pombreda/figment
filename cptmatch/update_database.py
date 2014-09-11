@@ -4,9 +4,9 @@ from figment.models import *
 from gi.repository import Appstream
 from distutils.version import LooseVersion
 
-from distro.debian import *
-from distro.fedora import *
-from distro.tanglu import *
+from debian import *
+from fedora import *
+from tanglu import *
 
 class DatabaseUpdater:
     components = dict()

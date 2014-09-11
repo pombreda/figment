@@ -10,16 +10,28 @@ def no_epoch(version):
         return v
 
 class PackageInfo():
-    def __init__(self, pkgname, pkgversion, upstream_version, suite, component):
-        self.pkgname = pkgname
-        self.version = pkgversion
+    def __init__(self, name, version, upstream_version, arch, source_package):
+        self.name = name
+        self.version = version
+        self.arch = arch
+        self.source_package = source_package
         self.upstream_version = upstream_version
-        self.codename = suite
-        self.component = component
+
         self.url = "#"
 
+    def to_yaml(self):
+        data = dict()
+        data['Package'] = self.name
+        data['Version'] = self.version
+        data['UpstreamVersion'] = self.upstream_version
+        data['Architecture'] = self.arch
+        data['SourcePackage'] = self.source_package
+        data['Url'] = self.url
+
+        return yaml.dump(data, indent=2, default_flow_style=False, explicit_start=True)
+
     def __str__(self):
-        return "Package { name: %s | version: %s | suite: %s | comp: %s }" % (self.pkgname, self.version, self.codename, self.component)
+        return "Package { name: %s | version: %s }" % (self.pkgname, self.version)
 
 class PkgInfoRetriever():
     def __init__(self, distro_name):
