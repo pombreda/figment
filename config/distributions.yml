@@ -10,8 +10,9 @@ Debian:
 Fedora:
     archive_info_url: https://admin.fedoraproject.org/pkgdb/api/package
     releases:
-        - version: devel
-          name: Rawhide
+        - version: 21
+          name: f21
+          development: true
         - version: 20
           name: f20
 

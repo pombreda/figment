@@ -3,3 +3,5 @@ PyGObject
 Flask
 Flask-SQLAlchemy
 Flask-WTF
+python-libarchive
+yaml

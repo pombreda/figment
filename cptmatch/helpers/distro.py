@@ -1,6 +1,8 @@
 
 import yaml
 import os
+from gi.repository import Appstream
+from distutils.version import LooseVersion
 
 def no_epoch(version):
     v = version
@@ -19,6 +21,8 @@ class PackageInfo():
 
         self.url = "#"
 
+        self.cpt = None
+
     def to_yaml(self):
         data = dict()
         data['Package'] = self.name
@@ -33,7 +37,7 @@ class PackageInfo():
     def __str__(self):
         return "Package { name: %s | version: %s }" % (self.pkgname, self.version)
 
-class PkgInfoRetriever():
+class ComponentInfoRetriever():
     def __init__(self, distro_name):
         self._conf = yaml.safe_load(open("%s/%s" % (self._get_config_path(), 'distributions.yml'), 'r'))
         self._distro_name = distro_name
@@ -57,13 +61,40 @@ class PkgInfoRetriever():
         return self._distro_name
 
     def update_caches(self):
+        """ Update the cached AppStream and package information """
         pass
 
-    def get_packages_info(self, pkgname):
+    def get_components_packages(self):
         return list()
 
     def get_releases(self):
-        pass
+        """ Get releases of this distribution """
+        releases = list()
+        for release in self.config['releases']:
+            releases.append({'codename': release['name'], 'version': release['version']})
+        return releases
 
-    def get_metadata_paths(self):
-        return [os.path.join(self.get_cache_path(), "metadata")]
+    def get_metadata_path(self):
+        return os.path.join(self.get_cache_path(), "metadata")
+
+    def get_appstream_components(self, metadata_path):
+        dpool = Appstream.DataPool.new()
+        dpool.set_data_source_directories([metadata_path])
+        dpool.set_locale("C")
+
+        dpool.initialize()
+        dpool.update()
+
+        res = dict()
+        cpts = dpool.get_components()
+        for cpt in cpts:
+            identifier = cpt.get_id().decode("utf-8")
+
+            # we can only have one package name per component
+            pkgname = cpt.get_pkgnames()[0]
+            if pkgname:
+                pkgname = pkgname.decode("utf-8")
+            else:
+                continue
+            res[pkgname] = cpt
+        return res

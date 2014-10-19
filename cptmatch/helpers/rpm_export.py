@@ -192,6 +192,7 @@ class Metadata(object):
                 return
 
         fout = open(cache, 'w')
+        fin = None
         try:
             fin = urllib2.urlopen(posixjoin(self.resource, subpath))
             while True:
@@ -201,7 +202,8 @@ class Metadata(object):
                 fout.write(bytes)
             fout.close()
         except urllib2.HTTPError, e:
-            fin.close()
+            if fin:
+                fin.close()
             fout.close()
             os.unlink(cache)
             raise e
