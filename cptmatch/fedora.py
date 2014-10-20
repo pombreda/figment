@@ -8,14 +8,14 @@ import re
 import libarchive
 import gzip
 
-class FedoraComponentInfoRetriever(ComponentInfoRetriever):
+class FedoraDataRetriever(DistroDataRetriever):
     def __init__(self):
-        ComponentInfoRetriever.__init__(self, "Fedora")
+        DistroDataRetriever.__init__(self, "Fedora")
 
     def update_caches(self):
         for r in self.config['releases']:
             fedora_release = str(r['version'])
-            cachedir = os.path.join(self.get_cache_path(), "tmp")
+            cachedir = os.path.join(self.get_cache_path(), "tmp", fedora_release)
             metadatadir = os.path.join(self.get_metadata_path(), fedora_release)
 
             if r.get('development'):
@@ -37,10 +37,10 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
 
             # download AppStream data
             urlpath = urlopen(os.path.join(repo_url, "Packages/a/"))
-            string = urlpath.read().decode('utf-8')
+            p_index = urlpath.read().decode('utf-8')
 
             pattern = re.compile('appstream-data.*.noarch.rpm"')
-            filelist = pattern.findall(string)
+            filelist = pattern.findall(p_index)
             if not filelist:
                 continue
 
@@ -48,10 +48,10 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
             remotefile = urlopen(os.path.join(repo_url, "Packages/a/", filename))
 
             tmpfile = os.path.join(cachedir, filename)
-            localfile = open(tmpfile,'wb')
+            localfile = open(tmpfile, 'w')
             localfile.write(remotefile.read())
-            localfile.close()
             remotefile.close()
+            localfile.close()
 
             common_prefix = "./usr/share/app-info/"
             with libarchive.SeekableArchive(tmpfile) as a:
@@ -66,6 +66,7 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
                         f.close()
 
 
+
     def _get_upstream_version (self, version):
         v = no_epoch(version)
         if "-" in v:
@@ -73,6 +74,7 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
         return v
 
     def get_components_packages(self):
+        pkgs = list()
         for rel in self.config['releases']:
             fedora_release = str(rel['version'])
             pkgcache = os.path.join(self.get_cache_path(), "packages", fedora_release, "dist-%s" % (fedora_release))
@@ -81,7 +83,6 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
             # get list of AppStream components for the given distro
             ascpts = self.get_appstream_components(metadatadir)
 
-            pkgs = list()
             docs = list()
             try:
                 docs = yaml.load_all(gzip.open(os.path.join(pkgcache, "packages.gz"), 'r'))
@@ -95,8 +96,9 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
                 pkg = PackageInfo(pkgname,
                               doc['Version'],
                               doc['UpstreamVersion'],
-                              fedora_release,
-                              "main")
+                              doc['Architecture'],
+                              fedora_release)
+
                 pkg.url = "https://apps.fedoraproject.org/packages/%s" % (pkgname)
                 pkg.cpt = cpt
                 pkgs.append(pkg)
@@ -104,4 +106,4 @@ class FedoraComponentInfoRetriever(ComponentInfoRetriever):
 
 if __name__ == '__main__':
     test = FedoraComponentInfoRetriever()
-    print test.get_components_packages()
+    print(test.get_components_packages())

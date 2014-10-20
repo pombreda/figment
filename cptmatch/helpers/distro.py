@@ -12,12 +12,13 @@ def no_epoch(version):
         return v
 
 class PackageInfo():
-    def __init__(self, name, version, upstream_version, arch, source_package):
+    def __init__(self, name, version, upstream_version, arch, distro_release):
         self.name = name
         self.version = version
         self.arch = arch
-        self.source_package = source_package
+        self.source_package = None
         self.upstream_version = upstream_version
+        self.distro_release = distro_release
 
         self.url = "#"
 
@@ -29,15 +30,17 @@ class PackageInfo():
         data['Version'] = self.version
         data['UpstreamVersion'] = self.upstream_version
         data['Architecture'] = self.arch
-        data['SourcePackage'] = self.source_package
+        data['DistroRelease'] = self.distro_release
         data['Url'] = self.url
+        if self.source_package:
+            data['Source'] = self.source_package
 
         return yaml.dump(data, indent=2, default_flow_style=False, explicit_start=True)
 
     def __str__(self):
         return "Package { name: %s | version: %s }" % (self.pkgname, self.version)
 
-class ComponentInfoRetriever():
+class DistroDataRetriever():
     def __init__(self, distro_name):
         self._conf = yaml.safe_load(open("%s/%s" % (self._get_config_path(), 'distributions.yml'), 'r'))
         self._distro_name = distro_name
@@ -71,7 +74,7 @@ class ComponentInfoRetriever():
         """ Get releases of this distribution """
         releases = list()
         for release in self.config['releases']:
-            releases.append({'codename': release['name'], 'version': release['version']})
+            releases.append({'codename': str(release['name']), 'version': release['version']})
         return releases
 
     def get_metadata_path(self):

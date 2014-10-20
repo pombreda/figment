@@ -135,7 +135,7 @@ class DistOutput(object):
 
 
 class Metadata(object):
-    def __init__(self, resource, cachedir, skip_arches=['src', 'x86_64'], skip_suffixes=['-32bit', '-debuginfo', '-debugsource']):
+    def __init__(self, resource, cachedir, skip_arches=['src', 'i386', 'i686'], skip_suffixes=['-32bit', '-debuginfo', '-debugsource']):
         self.resource = resource
 
         parsed = urlparse.urlparse(self.resource)
@@ -249,7 +249,6 @@ class Metadata(object):
     def export_data(self, tag, style, outdir='.'):
         log.info("Exporting data.")
         of = DistOutput(outdir, tag, style)
-        print "%s -- %s" % (tag, style)
         # It's always much more readable to sort the output
         self.packages.sort(key=operator.attrgetter('name'))
         for package in self.packages:
@@ -354,7 +353,7 @@ class RpmMd(Metadata):
             raise RpmMdException('%s in %s does not exist.' % (self._primary_filename, self.resource))
 
         try:
-            root = ET.parse(primary_path).getroot()
+            root = ET.parse(gzip.open(primary_path)).getroot()
         except SyntaxError, e:
             raise RpmMdException('Cannot parse primary metadata: %s' % (e,))
 
@@ -410,7 +409,9 @@ class RpmMd(Metadata):
         else:
             pkgid = None
 
-        return (pkgid, PackageInfo(name, version, upstream_version, arch, src_package))
+        pkg = PackageInfo(name, version, upstream_version, arch, None)
+        pkg.source_package = src_package
+        return (pkgid, pkg)
 
 
 class Yast2(Metadata):
