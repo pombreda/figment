@@ -39,7 +39,7 @@
     <div class="row">
       {% for shot in item.screenshots %}
         <div class="col-md-4">
-          <a href="{{shot.url_large}}" data-title="{{shot.caption}}" data-toggle="lightbox">
+          <a href="{{shot.url_large}}" data-title="{{shot.caption}}" data-toggle="lightbox" data-type="image">
               <img src="{{shot.url_thumb}}" alt="Screenshot" />
           </a>
         </div>
