@@ -39,8 +39,9 @@
     <div class="row">
       {% for shot in item.screenshots %}
         <div class="col-md-4">
-          <a href="{{shot.url_large}}"><img src="{{shot.url_thumb}}" alt="Screenshot" /></a>
-          <center><strong>{{shot.caption}}</strong></center>
+          <a href="{{shot.url_large}}" data-title="{{shot.caption}}" data-toggle="lightbox">
+              <img src="{{shot.url_thumb}}" alt="Screenshot" />
+          </a>
         </div>
       {% endfor %}
       </div>
@@ -117,6 +118,7 @@
 </div>
 
 
+<script src="/static/js/ekko-lightbox.min.js"></script>
 <script>
 $('#collapseProvides').collapse("hide");
 
@@ -126,6 +128,10 @@ $('#versionTabbar a').click(function (e) {
 })
 $('#versionTabbar a:first').tab('show');
 $("[rel='tooltip']").tooltip({html: true});
+
+$(document).delegate('*[data-toggle="lightbox"]', 'click', function(event) {
+  event.preventDefault(); $(this).ekkoLightbox();
+});
 </script>
 
 {% endblock %}

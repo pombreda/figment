@@ -71,7 +71,10 @@ def component_page(identifier):
                 sdata['url_large'] = img['url']
             max_height = img['height']
         if sdata:
-            sdata['caption'] = shot.caption
+            if shot.caption:
+                sdata['caption'] = shot.caption
+            else:
+                sdata['caption'] = "Screenshot: %s" % (cpt.name)
             screenshots.append(sdata)
 
     veritems = list()
