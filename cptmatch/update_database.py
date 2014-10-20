@@ -3,58 +3,21 @@ from figment.database import db
 from figment.models import *
 from gi.repository import Appstream
 from distutils.version import LooseVersion
+from figment import app
+import shutil
+import os
 
 #from debian import *
 from fedora import *
-#from tanglu import *
+from tanglu import *
 
 class DatabaseUpdater:
+    def __init__(self):
+        self.icon_cache_path = os.path.join(app.root_path, "..", "static", "images", "cpt-icons")
 
     def init_database(self):
         db.create_all()
         db.session.commit()
-
-    def build_component_cache(self, distro):
-        distro_name = distro.get_name()
-        print("Updating component cache with data from: %s" % (distro_name))
-
-        dpool = Appstream.DataPool.new()
-        dpool.set_data_source_directories(distro.get_metadata_paths())
-        dpool.set_locale("C")
-
-        dpool.initialize()
-        dpool.update()
-
-        cpts = dpool.get_components()
-
-        for cpt in cpts:
-            identifier = cpt.get_id().decode("utf-8")
-
-            # we can only have one package name per component
-            pkgname = cpt.get_pkgnames()[0]
-            if pkgname:
-                pkgname = pkgname.decode("utf-8")
-
-            # get the highest version available for this component
-            pkgs = distro.get_packages_info(pkgname)
-            component_version = LooseVersion("0~")
-            for pkg in pkgs:
-                pkgversion = LooseVersion(pkg.upstream_version)
-                if pkgversion >= component_version:
-                    component_version = LooseVersion(pkg.upstream_version)
-
-            cdata = self.components.get(identifier, None)
-            if cdata:
-                if component_version >= cdata['version']:
-                    cdata['cpt'] = cpt
-            else:
-                cdata = {'cpt': cpt, 'version': component_version}
-
-            # set a package name for this distro
-            # FIXME: What happens if a package name is changed between distro suites?
-            cdata[distro_name] = pkgname
-
-            self.components[identifier] = cdata
 
     def update_components_packages(self, distro):
         distro_name = distro.get_name()
@@ -93,7 +56,10 @@ class DatabaseUpdater:
                     imgdata = list()
                     for img in shot.get_images():
                         d = dict()
-                        d['kind'] = Appstream.Image.kind_to_string(img.get_kind()).decode("utf-8")
+                        d['kind'] = Appstream.Image.kind_to_string(img.get_kind())
+                        if not d['kind']:
+                            continue
+                        d['kind'] = d['kind'].decode("utf-8")
                         d['url'] = img.get_url().decode("utf-8")
                         d['width'] = img.get_width()
                         d['height'] = img.get_height()
@@ -115,7 +81,20 @@ class DatabaseUpdater:
                 else:
                     homepage = "#"
                 dbcpt.homepage = homepage
-                dbcpt.icon_url = cpt.get_icon_url().decode("utf-8")
+
+                icon_url = cpt.get_icon_url().decode("utf-8")
+                # remove old icon
+                if dbcpt.icon_url:
+                    icon_dest = os.path.join(self.icon_cache_path, dbcpt.icon_url)
+                    if os.path.isfile(dbcpt.icon_url):
+                        os.remove(dbcpt.icon_url)
+
+                dbcpt.icon_url = os.path.basename(icon_url)
+                icon_dest = os.path.join(self.icon_cache_path, dbcpt.icon_url)
+                try:
+                    shutil.copyfile(icon_url, icon_dest)
+                except:
+                    dbcpt.icon_url = ""
 
             dbdistro = db.session.query(Distribution).filter_by(codename=pkg.distro_release, name=distro_name).first()
             if not dbdistro:
@@ -135,7 +114,7 @@ class DatabaseUpdater:
                 dpk = DistroPackage()
                 ver.packages.append(dpk)
                 dbdistro.packages.append(dpk)
-                dpk.pkgname = pkg.pkgname
+                dpk.pkgname = pkg.name
                 dpk.package_url = pkg.url
                 db.session.add(dpk)
                 db.session.flush()
@@ -164,7 +143,7 @@ class DatabaseUpdater:
         distros = list()
         #distros.append(DebianDataRetriever())
         distros.append(FedoraDataRetriever())
-        #distros.append(TangluDataRetriever())
+        distros.append(TangluDataRetriever())
 
         for distro in distros:
             distro.update_caches()

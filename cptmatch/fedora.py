@@ -97,7 +97,7 @@ class FedoraDataRetriever(DistroDataRetriever):
                               doc['Version'],
                               doc['UpstreamVersion'],
                               doc['Architecture'],
-                              fedora_release)
+                              str(rel['name']))
 
                 pkg.url = "https://apps.fedoraproject.org/packages/%s" % (pkgname)
                 pkg.cpt = cpt
@@ -105,5 +105,5 @@ class FedoraDataRetriever(DistroDataRetriever):
         return pkgs
 
 if __name__ == '__main__':
-    test = FedoraComponentInfoRetriever()
+    test = FedoraDataRetriever()
     print(test.get_components_packages())

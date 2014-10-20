@@ -1,5 +1,5 @@
 
-from helpers import *
+from helpers.distro import *
 import gzip
 import re
 from apt_pkg import TagFile, version_compare, init
@@ -18,10 +18,11 @@ def package_list_to_dict(pkg_list):
         pkg_dict[pkg.pkgname] = pkg
     return pkg_dict
 
-class TangluPkgInfoRetriever(PkgInfoRetriever):
+class TangluDataRetriever(DistroDataRetriever):
     def __init__(self):
-        PkgInfoRetriever.__init__(self, "Tanglu")
+        DistroDataRetriever.__init__(self, "Tanglu")
         self._packages = None
+        self._archive_components = ["main", "contrib", "non-free"]
 
     def get_releases(self):
         releases = list()
@@ -47,53 +48,41 @@ class TangluPkgInfoRetriever(PkgInfoRetriever):
             v = v[:v.index("-")]
         return v
 
-    def _get_packages_for(self, suite, component):
-        index_path = os.path.join(self.get_cache_path(), suite, component, "Packages-amd64.gz")
-
-        f = gzip.open(index_path, 'rb')
-        tagf = TagFile(f)
-        package_list = list()
-        for section in tagf:
-            pkgversion = section.get('Version')
-            if not pkgversion:
-                print("Debian: Bad package data found!")
-            pkgname = section['Package']
-            pkg = PackageInfo(pkgname,
-                              pkgversion,
-                              self._get_upstream_version(pkgversion),
-                              suite,
-                              component)
-            pkg.url = "http://packages.tanglu.org/%s/%s" % (suite, pkgname)
-
-            package_list.append(pkg)
-        packages_dict = package_list_to_dict(package_list)
-
-        return packages_dict
-
-    def _initialize(self):
-        self._packages = dict()
-        for suite in self.config['suites']:
-            suite_name = suite['name']
-            self._packages[suite_name] = dict()
-            for component in ["main", "contrib", "non-free"]:
-                pkg_dict = self._get_packages_for(suite_name, component)
-                self._packages[suite_name] = dict(pkg_dict.items() + self._packages[suite_name].items())
-
-
-    def get_packages_info(self, pkgname):
-        if not self._packages:
-            self._initialize()
+    def get_components_packages(self):
         pkgs = list()
         for suite in self.config['suites']:
             suite_name = suite['name']
-            pkg = self._packages[suite_name].get(pkgname)
-            if pkg:
-                pkgs.append (pkg)
+            metadatadir = os.path.join(self.get_metadata_path(), suite_name)
+
+            # get list of AppStream components for the given distro
+            ascpts = self.get_appstream_components(metadatadir)
+
+            for archive_component in self._archive_components:
+                index_path = os.path.join(self.get_cache_path(), suite_name, archive_component, "Packages-amd64.gz")
+
+                f = gzip.open(index_path, 'rb')
+                tagf = TagFile(f)
+                for section in tagf:
+                    pkgversion = section.get('Version')
+                    if not pkgversion:
+                        print("Tanglu: Bad package data found!")
+                    pkgname = section['Package']
+                    cpt = ascpts.get(pkgname)
+                    if not cpt:
+                        continue
+                    pkg = PackageInfo(pkgname,
+                              pkgversion,
+                              self._get_upstream_version(pkgversion),
+                              "unknown-amd64",
+                              suite_name)
+                    pkg.url = "http://packages.tanglu.org/%s/%s" % (suite_name, pkgname)
+                    pkg.cpt = cpt
+                    pkgs.append(pkg)
         return pkgs
-
-    def get_metadata_paths_xml(self):
-        return [os.path.join(self.get_cache_path(), "metadata")]
-
 
 ### apt_pkg needs to be initialized
 init()
+
+if __name__ == '__main__':
+    test = TangluDataRetriever()
+    print(test.get_components_packages())
